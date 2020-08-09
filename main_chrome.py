@@ -3,7 +3,6 @@ from selenium import webdriver
 from telegram.ext import CommandHandler, ConversationHandler, MessageHandler, Updater, Filters
 from telegram import KeyboardButton, ReplyKeyboardMarkup
 
-import base64
 import requests
 from PIL import Image
 from io import BytesIO
@@ -36,6 +35,9 @@ def main():
         return ALIVE
 
     def login(update, context):
+        if context.user_data["loggedin"]:
+            context.bot.send_message(chat_id=update.effective_chat.id, text="你已经登入")
+            return
         context.bot.send_message(chat_id=update.effective_chat.id, text="正在初始化。。。")
 
         options = webdriver.ChromeOptions()
@@ -47,7 +49,7 @@ def main():
         qr_image = Image.open(BytesIO(requests.get(qr.get_attribute("src")).content))
         qr_image = qr_image.resize((qr_image.width//2, qr_image.height//2))
         qr_buffer = BytesIO()
-        qr_image.save(qr_buffer, format="JPEG")
+        qr_image.save(qr_buffer, format="PNG")
         qr_buffer.seek(0)
         context.bot.send_photo(chat_id=update.effective_chat.id, photo=qr_buffer)
 
@@ -91,7 +93,13 @@ def main():
                         else:
                             context.bot.send_message(chat_id=update.effective_chat.id, text="{} 对你说：\n{}".format(sendername, i.text))
                     elif i.tag_name == "img":
+                        img = Image.open(BytesIO(i.screenshot_as_png))
+                        img = img.resize((img.width*2, img.height*2))
+                        img_buffer = BytesIO()
+                        img.save(img_buffer, format="PNG")
+                        img_buffer.seek(0)
                         context.bot.send_message(chat_id=update.effective_chat.id, text="{} 给你发了一个照片".format(sendername))
+                        context.bot.send_photo(chat_id=update.effective_chat.id, photo=img_buffer)
                 
                 ft = [a for a in driver.find_elements_by_css_selector("div.chat_item") if "File Transfer" in a.text][0]
                 ft.click()
