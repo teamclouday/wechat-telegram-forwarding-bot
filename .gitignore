@@ -1,2 +1,2 @@
-geckodriver.log
-token.txt
+*.log
+*.txt

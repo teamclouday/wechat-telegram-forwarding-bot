@@ -9,8 +9,10 @@ import os
 
 
 def main():
-    f = open("token.txt", "r")
-    token=f.read()
+    f = open("config.txt", "r")
+    word=f.readlines()
+    allowed_user="@"+str(word[1].strip())
+    token=str(word[0].strip())
     print(token)
     f.close()
 
@@ -102,8 +104,15 @@ def main():
         print("Service stop")
         context.bot.send_message(chat_id=update.effective_chat.id, text="You have logged out")
 
-    dispatcher.add_handler(CommandHandler("login", login, pass_job_queue=True))
-    dispatcher.add_handler(CommandHandler("logout", logout, pass_job_queue=True))
+    dispatcher.add_handler(CommandHandler("login", 
+                                            login, 
+                                            pass_job_queue=True, 
+                                            filters=Filters.user(username=allowed_user)))
+    dispatcher.add_handler(CommandHandler("logout", 
+                                            logout, 
+                                            pass_job_queue=True,
+                                            filters=Filters.user(username=allowed_user)))
+
 
     updater.start_polling()
     updater.idle()
