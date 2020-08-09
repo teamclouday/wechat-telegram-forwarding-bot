@@ -18,7 +18,10 @@ def main():
     dispatcher = updater.dispatcher
 
     def login(update, context):
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Initializing...")
+        if ("loggedin" in context.user_data.keys()) and context.user_data["loggedin"]:
+            context.bot.send_message(chat_id=update.effective_chat.id, text="Logged in already")
+            return
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Fetching wechat login info")
 
         options = Options()
         options.add_argument('--headless')
@@ -34,7 +37,9 @@ def main():
         context.bot.send_photo(chat_id=update.effective_chat.id, photo=qr_buffer)
 
         timer=45
-        while driver.find_element_by_css_selector("div.qrcode img.img").is_displayed() and timer>=0:
+        timer_test = driver.find_elements_by_css_selector("div.chat_item div.avatar")
+        while (timer >= 0) and ((timer_test == []) or (not timer_test[0].is_displayed())):
+            timer_test = driver.find_elements_by_css_selector("div.chat_item div.avatar")
             time.sleep(1)
             timer-=1
 
