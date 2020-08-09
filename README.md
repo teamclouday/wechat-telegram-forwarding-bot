@@ -1,7 +1,7 @@
 # wechat-telegram-forwarding-bot
 
 ## 部署
-1. 你需要一个Telegram帐号，一个Telegram Bot[https://core.telegram.org/bots],并拥有Bot的Token
+1. 你需要一个Telegram帐号，一个Telegram Bot https://core.telegram.org/bots ,并拥有Bot的Token
 2. 你处于中立边界，也就是这个Bot的运行网路下你能够访问微信与Telegram
 3. 安装依赖，`sh install.sh`
 4. 在文件夹内新建一个token.txt，复制token进去,请勿换行
