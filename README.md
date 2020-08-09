@@ -10,12 +10,13 @@
 
 效果如下图,本次更新解决了需要手动Fetch消息的问题，每十秒自动推送  
 <img src="assets/demo.jpg"  width="200"/>
+<img src="assets/demo1.png"  width="700"/>  
 
 ## 已知Bug
 没有肉眼可见的bug
 
 ## 特别鸣谢
-本程序由Nagato 与 Sida共同完成,尤其在解决Fetch与chrome的支持上需要特别感谢Sida
+本程序由Nagato 与 Sida共同完成,特别感谢Sida在解决Fetch与chrome的支持
 
 ## 免责声明
 协议请见Licence，本程序基于Web微信,本人对使用本程序产生的所有后果不负任何责任
