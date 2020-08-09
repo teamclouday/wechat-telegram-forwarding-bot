@@ -85,9 +85,6 @@ def main():
         if response!=[]:
             for sender in response:
                 if sender.text =="":
-                    sender.click()
-                    sendername = driver.find_element_by_css_selector("div.title_wrap a.title_name").text
-                    context.bot.send_message(chat_id=update.effective_chat.id, text="Unread message in group chat "+sendername)
                     continue
                 number = int(sender.text)
                 sender.click()
