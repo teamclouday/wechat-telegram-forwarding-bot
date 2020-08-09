@@ -3,6 +3,11 @@ import time
 from telegram.ext import CommandHandler, ConversationHandler, MessageHandler, Updater, Filters
 from telegram import KeyboardButton, ReplyKeyboardMarkup
 from selenium.webdriver.firefox.options import Options
+from PIL import Image
+import requests
+from io import BytesIO
+import os
+
 
 ALIVE = 0
 
@@ -21,7 +26,7 @@ def main():
             KeyboardButton("Fetch"),
             KeyboardButton("Logout")]]
         reply_markup = ReplyKeyboardMarkup(keyboard)
-        context.bot.send_message(chat_id=update.message.chat_id, text="Started", reply_markup=reply_markup)
+        context.bot.send_message(chat_id=update.message.chat_id, text="Launching bot...", reply_markup=reply_markup)
         return ALIVE
 
     def button(update, context):
@@ -42,7 +47,16 @@ def main():
         driver.get("https://wx.qq.com/?lang=en_US")
 
         qr = driver.find_element_by_css_selector("div.qrcode  img.img").get_attribute("src")
-        context.bot.send_photo(chat_id=update.effective_chat.id, photo=qr)
+        basewidth = 200
+        response = requests.get(qr)
+        img = Image.open(BytesIO(response.content))
+        wpercent = (basewidth/float(img.size[0]))
+        hsize = int((float(img.size[1])*float(wpercent)))
+        img = img.resize((basewidth,hsize), Image.ANTIALIAS)
+        img.save('qr.jpg')
+        context.bot.send_photo(chat_id=update.effective_chat.id, photo=open('qr.jpg', 'rb'))
+        if os.path.exists("qr.jpg"):
+            os.remove("qr.jpg")
 
         timer=45
         while driver.find_element_by_css_selector("div.qrcode img.img").is_displayed() and timer>=0:
