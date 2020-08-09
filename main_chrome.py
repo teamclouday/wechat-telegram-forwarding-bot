@@ -34,21 +34,20 @@ def main():
         context.bot.send_message(chat_id=update.effective_chat.id, text="正在初始化。。。")
 
         options = webdriver.ChromeOptions()
-        # options.add_argument('--headless')
+        options.add_argument('--headless')
         driver = webdriver.Chrome(options=options)
         driver.get("https://wx.qq.com/?lang=en_US")
 
-        qr = driver.find_element_by_css_selector("div.qrcode  img.img").get_attribute("src")
-        context.bot.send_photo(chat_id=update.effective_chat.id, photo=qr)
+        qr = driver.find_element_by_css_selector("div.qrcode img.img")
+        context.bot.send_photo(chat_id=update.effective_chat.id, photo=qr.get_attribute("src"))
 
         timer=45
-        while (driver.find_elements_by_css_selector("div.qrcode img.img") != []) and timer>=0:
+        while qr.is_displayed() and (timer >= 0):
             time.sleep(1)
             timer-=1
-            print(timer)
 
         if timer < 0:
-            context.bot.send_message(chat_id=update.effective_chat.id, text="你的二维码已过期")
+            context.bot.send_message(chat_id=update.effective_chat.id, text="你的二维码已过期（45秒）")
             driver.close()
             return
 
@@ -74,7 +73,6 @@ def main():
                 sendername = driver.find_element_by_css_selector("div.title_wrap a.title_name").text
                 message_raw = driver.find_elements_by_css_selector("div.message:not(.me) div.content div.plain,img.msg-img,div.voice")
 
-                #print(sendername, number)
                 message = []
                 for i in message_raw:
                     if i.tag_name == "div":
@@ -87,14 +85,15 @@ def main():
 
                 ft = [a for a in driver.find_elements_by_css_selector("div.chat_item") if "File Transfer" in a.text][0]
                 ft.click()
+        else:
+            context.bot.send_message(chat_id=update.effective_chat.id, text="无最新消息")
 
     def logout(update, context):
         if not context.user_data["loggedin"]:
             context.bot.send_message(chat_id=update.effective_chat.id, text="你还没登录")
             return
         driver = context.user_data["driver"]
-        driver.close() 
-        print("Service stop")
+        driver.close()
         context.bot.send_message(chat_id=update.effective_chat.id, text="你已登出")
 
     dispatcher.add_handler(ConversationHandler(
@@ -105,6 +104,7 @@ def main():
         fallbacks=[CommandHandler("start", start)]
     ))
     updater.start_polling()
+    print("bot started")
     updater.idle()
     updater.stop()
 
