@@ -1,7 +1,7 @@
 import time
 import json
 from selenium import webdriver
-from telegram.ext import CommandHandler, Updater, Filters
+from telegram.ext import CommandHandler, MessageHandler, Updater, Filters
 
 import requests
 from PIL import Image
@@ -109,8 +109,12 @@ def main():
         driver.close()
         context.bot.send_message(chat_id=update.effective_chat.id, text="你已登出")
 
+    def echo(update, context):
+        update.message.reply_text(update.message.text)
+
     dispatcher.add_handler(CommandHandler("login", login, pass_job_queue=True))
     dispatcher.add_handler(CommandHandler("logout", logout, pass_job_queue=True))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
     updater.start_polling()
     print("bot started")
     updater.idle()
