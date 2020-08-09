@@ -1,7 +1,13 @@
 from selenium import webdriver
 import time
-from telegram.ext import ConversationHandler, CommandHandler, MessageHandler, Updater, Filters
+from telegram.ext import CommandHandler, ConversationHandler, MessageHandler, Updater, Filters
+from telegram import KeyboardButton, ReplyKeyboardMarkup
 from selenium.webdriver.firefox.options import Options
+from PIL import Image
+import requests
+from io import BytesIO
+import os
+
 
 f = open("token.txt", "r")
 token=f.read()
@@ -15,24 +21,30 @@ def start(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text="Initializing...")
 
     options = Options()
-    # options.add_argument('--headless')
+    options.add_argument('--headless')
     driver = webdriver.Firefox(options=options)
-    driver.get("https://wx.qq.com")
+    driver.get("https://wx.qq.com/?lang=en_US")
 
-    qr = driver.find_element_by_css_selector("div.qrcode  img.img").get_attribute("src")
-    basewidth = 200
-    response = requests.get(qr)
-    img = Image.open(BytesIO(response.content))
-    wpercent = (basewidth/float(img.size[0]))
-    hsize = int((float(img.size[1])*float(wpercent)))
-    img = img.resize((basewidth,hsize), Image.ANTIALIAS)
-    img.save('qr.jpg')
-    context.bot.send_photo(chat_id=update.effective_chat.id, photo=open('qr.jpg', 'rb'))
-    if os.path.exists("qr.jpg"):
-        os.remove("qr.jpg")
+    qr = driver.find_element_by_css_selector("div.qrcode img.img")
+    qr_image = Image.open(BytesIO(requests.get(qr.get_attribute("src")).content))
+    qr_image = qr_image.resize((qr_image.width//2, qr_image.height//2))
+    qr_buffer = BytesIO()
+    qr_image.save(qr_buffer, format="PNG")
+    qr_buffer.seek(0)
+    context.bot.send_photo(chat_id=update.effective_chat.id, photo=qr_buffer)
 
-    while driver.find_element_by_css_selector("div.qrcode img.img").is_displayed():
+    timer=45
+    while driver.find_element_by_css_selector("div.qrcode img.img").is_displayed() and timer>=0:
         time.sleep(1)
+        timer-=1
+
+    if timer < 0:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Your login expired")
+        driver.close()
+        return
+
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Connected, loading...")
+    time.sleep(2)
     context.bot.send_message(chat_id=update.effective_chat.id, text="You have logged in")
 
     def capturechat(driver):
@@ -44,24 +56,33 @@ def start(update, context):
         response=capturechat(driver)
         if response!=[]:
             for sender in response:
+                if sender.text =="":
+                    sender.click()
+                    sendername = driver.find_element_by_css_selector("div.title_wrap a.title_name").text
+                    context.bot.send_message(chat_id=update.effective_chat.id, text="Unread message in group chat "+sendername)
+                    continue
                 number = int(sender.text)
                 sender.click()
                 sendername = driver.find_element_by_css_selector("div.title_wrap a.title_name").text
                 message_raw = driver.find_elements_by_css_selector("div.message:not(.me) div.content div.plain,img.msg-img,div.voice")
 
-                #print(sendername, number)
-                message = []
-                for i in message_raw:
+                for i in message_raw[len(message_raw)-number:]:
                     if i.tag_name == "div":
-                        if i.get_attribute("class") == "voice": message.append(i.text + " voice message received")
-                        else: message.append(i.text)
-                    elif i.tag_name == "img": message.append("Image received")
-                bot_message = "{} sent you {} messages:\n{}".format(sendername, number, "\n".join(message[len(message)-number:]))
-                context.bot.send_message(chat_id=update.effective_chat.id, text=bot_message)
-                #print(message[len(message)-number:])
+                        if i.get_attribute("class") == "voice":
+                            context.bot.send_message(chat_id=update.effective_chat.id, text="{} sent you a voice message".format(sendername))
+                        else:
+                            context.bot.send_message(chat_id=update.effective_chat.id, text="{} sent you a message: {}".format(sendername, i.text))
+                    elif i.tag_name == "img":
+                        img = Image.open(BytesIO(i.screenshot_as_png))
+                        img = img.resize((img.width*2, img.height*2))
+                        img_buffer = BytesIO()
+                        img.save(img_buffer, format="PNG")
+                        img_buffer.seek(0)
+                        context.bot.send_message(chat_id=update.effective_chat.id, text="{} sent a picture".format(sendername))
+                        context.bot.send_photo(chat_id=update.effective_chat.id, photo=img_buffer)
 
-                ft = [a for a in driver.find_elements_by_css_selector("div.chat_item") if "File Transfer" in a.text][0]
-                ft.click()
+            ft = [a for a in driver.find_elements_by_css_selector("div.chat_item") if "File Transfer" in a.text][0]
+            ft.click()
 
 dispatcher = updater.dispatcher
 dispatcher.add_handler(CommandHandler('start', start))
