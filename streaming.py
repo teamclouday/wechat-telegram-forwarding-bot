@@ -20,7 +20,16 @@ def start(update, context):
     driver.get("https://wx.qq.com")
 
     qr = driver.find_element_by_css_selector("div.qrcode  img.img").get_attribute("src")
-    context.bot.send_photo(chat_id=update.effective_chat.id, photo=qr)
+    basewidth = 200
+    response = requests.get(qr)
+    img = Image.open(BytesIO(response.content))
+    wpercent = (basewidth/float(img.size[0]))
+    hsize = int((float(img.size[1])*float(wpercent)))
+    img = img.resize((basewidth,hsize), Image.ANTIALIAS)
+    img.save('qr.jpg')
+    context.bot.send_photo(chat_id=update.effective_chat.id, photo=open('qr.jpg', 'rb'))
+    if os.path.exists("qr.jpg"):
+        os.remove("qr.jpg")
 
     while driver.find_element_by_css_selector("div.qrcode img.img").is_displayed():
         time.sleep(1)
