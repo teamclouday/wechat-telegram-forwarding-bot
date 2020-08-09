@@ -39,23 +39,25 @@ def main():
         options = Options()
         options.add_argument('--headless')
         driver = webdriver.Firefox(options=options)
-        driver.get("https://wx.qq.com")
+        driver.get("https://wx.qq.com/?lang=en_US")
 
         qr = driver.find_element_by_css_selector("div.qrcode  img.img").get_attribute("src")
         context.bot.send_photo(chat_id=update.effective_chat.id, photo=qr)
 
         timer=45
-        while (driver.find_elements_by_css_selector("div.qrcode img.img") != []) and timer>=0:
+        while driver.find_element_by_css_selector("div.qrcode img.img").is_displayed() and timer>=0:
             time.sleep(1)
             timer-=1
-            print(timer)
 
         if timer < 0:
             context.bot.send_message(chat_id=update.effective_chat.id, text="Your login expired")
             driver.close()
             return
 
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Connected, loading...")
+        time.sleep(2)
         context.bot.send_message(chat_id=update.effective_chat.id, text="You have logged in")
+
         context.user_data["driver"]=driver
         context.user_data["loggedin"]=True
 
@@ -72,6 +74,13 @@ def main():
 
         if response!=[]:
             for sender in response:
+                if sender.text =="":
+                    sender.click()
+                    sendername = driver.find_element_by_css_selector("div.title_wrap a.title_name").text
+                    context.bot.send_message(chat_id=update.effective_chat.id, text="Unread message in group chat "+sendername)
+                    # ft = [a for a in driver.find_elements_by_css_selector("div.chat_item") if "File Transfer" in a.text][0]
+                    # ft.click()
+                    continue
                 number = int(sender.text)
                 sender.click()
                 sendername = driver.find_element_by_css_selector("div.title_wrap a.title_name").text
@@ -88,8 +97,8 @@ def main():
                 context.bot.send_message(chat_id=update.effective_chat.id, text=bot_message)
                 #print(message[len(message)-number:])
 
-                ft = [a for a in driver.find_elements_by_css_selector("div.chat_item") if "File Transfer" in a.text][0]
-                ft.click()
+            ft = [a for a in driver.find_elements_by_css_selector("div.chat_item") if "File Transfer" in a.text][0]
+            ft.click()
 
     def logout(update, context):
         if not context.user_data["loggedin"]:

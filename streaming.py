@@ -22,7 +22,7 @@ def start(update, context):
     qr = driver.find_element_by_css_selector("div.qrcode  img.img").get_attribute("src")
     context.bot.send_photo(chat_id=update.effective_chat.id, photo=qr)
 
-    while (driver.find_elements_by_css_selector("div.qrcode img.img") != []):
+    while driver.find_element_by_css_selector("div.qrcode img.img").is_displayed():
         time.sleep(1)
     context.bot.send_message(chat_id=update.effective_chat.id, text="You have logged in")
 
