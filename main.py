@@ -50,7 +50,7 @@ def main():
         qr_image = Image.open(BytesIO(requests.get(qr.get_attribute("src")).content))
         qr_image = qr_image.resize((qr_image.width//2, qr_image.height//2))
         qr_buffer = BytesIO()
-        qr_image.save(qr_buffer, format="JPEG")
+        qr_image.save(qr_buffer, format="PNG")
         qr_buffer.seek(0)
         context.bot.send_photo(chat_id=update.effective_chat.id, photo=qr_buffer)
 
@@ -84,28 +84,25 @@ def main():
 
         if response!=[]:
             for sender in response:
-                if sender.text =="":
-                    sender.click()
-                    sendername = driver.find_element_by_css_selector("div.title_wrap a.title_name").text
-                    context.bot.send_message(chat_id=update.effective_chat.id, text="Unread message in group chat "+sendername)
-                    # ft = [a for a in driver.find_elements_by_css_selector("div.chat_item") if "File Transfer" in a.text][0]
-                    # ft.click()
-                    continue
                 number = int(sender.text)
                 sender.click()
                 sendername = driver.find_element_by_css_selector("div.title_wrap a.title_name").text
                 message_raw = driver.find_elements_by_css_selector("div.message:not(.me) div.content div.plain,img.msg-img,div.voice")
 
-                #print(sendername, number)
-                message = []
-                for i in message_raw:
+                for i in message_raw[len(message_raw)-number:]:
                     if i.tag_name == "div":
-                        if i.get_attribute("class") == "voice": message.append(i.text + " voice message received")
-                        else: message.append(i.text)
-                    elif i.tag_name == "img": message.append("Image received")
-                bot_message = "{} sent you {} messages:\n{}".format(sendername, number, "\n".join(message[len(message)-number:]))
-                context.bot.send_message(chat_id=update.effective_chat.id, text=bot_message)
-                #print(message[len(message)-number:])
+                        if i.get_attribute("class") == "voice":
+                            context.bot.send_message(chat_id=update.effective_chat.id, text="{} sent you a voice message".format(sendername))
+                        else:
+                            context.bot.send_message(chat_id=update.effective_chat.id, text="{} sent you a message: {}".format(sendername, i.text))
+                    elif i.tag_name == "img":
+                        img = Image.open(BytesIO(i.screenshot_as_png))
+                        img = img.resize((img.width*2, img.height*2))
+                        img_buffer = BytesIO()
+                        img.save(img_buffer, format="PNG")
+                        img_buffer.seek(0)
+                        context.bot.send_message(chat_id=update.effective_chat.id, text="{} sent a picture".format(sendername))
+                        context.bot.send_photo(chat_id=update.effective_chat.id, photo=img_buffer)
 
             ft = [a for a in driver.find_elements_by_css_selector("div.chat_item") if "File Transfer" in a.text][0]
             ft.click()
