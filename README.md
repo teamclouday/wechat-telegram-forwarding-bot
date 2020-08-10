@@ -21,7 +21,7 @@ botfather
 没有肉眼可见的bug
 
 ## 特别鸣谢
-本程序由Nagato 与 Sida共同完成,特别感谢Sida在解决Fetch与chrome的支持
+本程序由Nagato 与 Sida共同完成,特别感谢Sida在解决Fetch与chrome的支持（在Chrome版本的上有远超Gecko版的体验与中文支持）
 
 ## 免责声明
 协议请见Licence，本程序基于Web微信,本人对使用本程序产生的所有后果不负任何责任
