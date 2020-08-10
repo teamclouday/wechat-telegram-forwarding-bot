@@ -18,7 +18,7 @@ botfather
 <img src="assets/demo1.png"  width="700"/>  
 
 ## 已知Bug
-没有肉眼可见的bug
+1. 在不稳定网络中运行中可能出现掉线后logout后无法login的问题
 
 ## 特别鸣谢
 本程序由Nagato 与 Sida共同完成,特别感谢Sida在解决Fetch与chrome的支持（在Chrome版本的上有远超Gecko版的体验与中文支持）
