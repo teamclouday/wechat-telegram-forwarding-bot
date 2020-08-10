@@ -7,6 +7,15 @@ import requests
 from PIL import Image
 from io import BytesIO
 
+# change this to your username
+LIMIT_USERNAME = None
+
+# edit this to change fetch interval
+FETCH_INTERVAL = 20
+
+# edit this to change qrcode timer limit
+QRCODE_TIMER = 45
+
 def main():
     with open("token.txt", "r") as f:
         token=f.read()
@@ -33,7 +42,7 @@ def main():
         qr_buffer.seek(0)
         context.bot.send_photo(chat_id=update.effective_chat.id, photo=qr_buffer)
 
-        timer=45
+        timer=QRCODE_TIMER
         timer_test = driver.find_elements_by_css_selector("div.chat_item div.avatar")
         while (timer >= 0) and ((timer_test == []) or (not timer_test[0].is_displayed())):
             timer_test = driver.find_elements_by_css_selector("div.chat_item div.avatar")
@@ -49,7 +58,7 @@ def main():
         context.user_data["driver"]=driver
         context.user_data["loggedin"]=True
         context.user_data["chatid"] = update.effective_chat.id
-        context.job_queue.run_repeating(fetch, 10, context=context.user_data)
+        context.job_queue.run_repeating(fetch, FETCH_INTERVAL, context=context.user_data)
 
     def fetch(context):
         driver = context.job.context["driver"]
@@ -69,34 +78,57 @@ def main():
                 number = int(sender.text)
                 sender.click()
                 sendername = driver.find_element_by_css_selector("div.title_wrap a.title_name").text
-                message_raw = driver.find_elements_by_css_selector("div.message:not(.me) div.content div.plain,img.msg-img,div.voice")
+                message_raw = driver.find_elements_by_css_selector("div.message:not(.me) div.content div.plain,div.picture,div.voice,div.video")
 
-                # sender_crypt = driver.find_element_by_css_selector("div.message img.avatar").get_attribute("mm-src")
-                # sender_crypt = sender_crypt[sender_crypt.find("crypt_")+6:]
+                sender_crypt = driver.find_element_by_css_selector("div.message img.avatar").get_attribute("mm-src")
+                sender_crypt = sender_crypt[sender_crypt.find("crypt_")+6:]
 
                 for i in message_raw[len(message_raw)-number:]:
-                    if i.tag_name == "div":
-                        if i.get_attribute("class") == "voice":
-                            voice_msg_id = json.loads(i.find_element_by_xpath("../..").get_attribute("data-cm"))["msgId"]
-                            voice_url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetvoice?msgid=" + voice_msg_id
-                            with requests.session() as session:
-                                for cookie in driver.get_cookies():
-                                    c = {cookie['name']: cookie['value']}
-                                    session.cookies.update(c)
-                                voice = BytesIO(session.get(voice_url, allow_redirects=True).content)
-                            context.bot.send_message(chat_id=context.job.context["chatid"], text="“{}”给你发送了一条语音".format(sendername))
-                            context.bot.send_voice(chat_id=context.job.context["chatid"], voice=voice)
-                        else:
-                            context.bot.send_message(chat_id=context.job.context["chatid"], text="“{}”对你说：\n{}".format(sendername, i.text))
-                    elif i.tag_name == "img":
-                        img = Image.open(BytesIO(i.screenshot_as_png))
+                    i_class = i.get_attribute("class")
+                    if i_class == "plain":
+                        context.bot.send_message(chat_id=context.job.context["chatid"], text="“{}”对你说：\n{}".format(sendername, i.text))
+                    elif i_class == "picture":
+                        img = i.find_element_by_css_selector("img.msg-img")
+                        img = Image.open(BytesIO(img.screenshot_as_png))
                         img = img.resize((img.width*2, img.height*2))
                         img_buffer = BytesIO()
                         img.save(img_buffer, format="PNG")
                         img_buffer.seek(0)
                         context.bot.send_message(chat_id=context.job.context["chatid"], text="“{}”给你发了一张图片".format(sendername))
                         context.bot.send_photo(chat_id=context.job.context["chatid"], photo=img_buffer)
-                
+                    elif i_class == "voice":
+                        voice_msg_id = json.loads(i.find_element_by_xpath("../..").get_attribute("data-cm"))["msgId"]
+                        voice_url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetvoice?msgid=" + voice_msg_id + "&skey=@crypt_" + sender_crypt
+                        cookies = {}
+                        for c in driver.get_cookies():
+                            cookies[c["name"]] = c["value"]
+                        r = requests.get(voice_url, cookies=cookies, stream=True)
+                        voice_buffer = BytesIO()
+                        for chunk in r.iter_content(chunk_size=512):
+                            if chunk: voice_buffer.write(chunk)
+                        voice_buffer.seek(0)
+                        context.bot.send_message(chat_id=context.job.context["chatid"], text="“{}”给你发送了一条语音".format(sendername))
+                        context.bot.send_voice(chat_id=context.job.context["chatid"], voice=voice_buffer)
+                    elif i_class == "video":
+                        video_msg_id = json.loads(i.find_element_by_xpath("../..").get_attribute("data-cm"))["msgId"]
+                        video_url = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetvideo?msgid=" + video_msg_id + "&skey=%2540crypt_" + sender_crypt
+                        cookies = {}
+                        for c in driver.get_cookies():
+                            cookies[c["name"]] = c["value"]
+                        headers = {
+                            "User-Agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36",
+                            "Referer": "https://wx.qq.com/?lang=en_US",
+                            "Accept-Encoding": "identity;q=1, *;q=0",
+                            "Range": "bytes=0-"
+                        }
+                        r = requests.get(video_url, cookies=cookies, stream=True, headers=headers)
+                        video_buffer = BytesIO()
+                        for chunk in r.iter_content(chunk_size=1024):
+                            if chunk: video_buffer.write(chunk)
+                        video_buffer.seek(0)
+                        context.bot.send_message(chat_id=context.job.context["chatid"], text="“{}”给你发送了一段视频".format(sendername))
+                        context.bot.send_video(chat_id=context.job.context["chatid"], video=video_buffer)
+ 
                 ft = [a for a in driver.find_elements_by_css_selector("div.chat_item") if "File Transfer" in a.text][0]
                 ft.click()
 
@@ -108,13 +140,18 @@ def main():
         driver = context.user_data["driver"]
         driver.close()
         context.bot.send_message(chat_id=update.effective_chat.id, text="你已登出")
+        context.user_data["loggedin"] = False
 
     def echo(update, context):
         update.message.reply_text(update.message.text)
 
-    dispatcher.add_handler(CommandHandler("login", login, pass_job_queue=True))
-    dispatcher.add_handler(CommandHandler("logout", logout, pass_job_queue=True))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+    if LIMIT_USERNAME:
+        dispatcher.add_handler(CommandHandler("login", login, pass_job_queue=True, filters=Filters.user(username=LIMIT_USERNAME)))
+        dispatcher.add_handler(CommandHandler("logout", logout, pass_job_queue=True, filters=Filters.user(username=LIMIT_USERNAME)))
+    else:
+        dispatcher.add_handler(CommandHandler("login", login, pass_job_queue=True))
+        dispatcher.add_handler(CommandHandler("logout", logout, pass_job_queue=True))
+        dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
     updater.start_polling()
     print("bot started")
     updater.idle()
