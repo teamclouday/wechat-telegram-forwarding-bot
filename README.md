@@ -13,9 +13,8 @@ botfather
 5. 运行`python3 main.py`
 6. 打开Bot,使用/login 与 /logout命令登入登出
 
-效果如下图,本次更新解决了需要手动Fetch消息的问题，每十秒自动推送  
-<img src="assets/demo.jpg"  width="200"/>
-<img src="assets/demo1.png"  width="700"/>  
+效果如下图,本次更新解决了需要手动Fetch消息的问题，每十秒自动推送   
+<img src="assets/demo.gif"  width="200"/>  
 
 ## 已知Bug
 1. 在不稳定网络中运行中可能出现掉线后logout后无法login的问题
