@@ -17,7 +17,8 @@ botfather
 <img src="assets/demo.gif"  width="200"/>  
 
 ## 已知Bug
-1. 在不稳定网络中运行中可能出现掉线后logout后无法login的问题
+1. Gecko版在不稳定网络中运行中可能出现微信掉线需要重新登陆，无法复现
+2. Gecko版测试于Ubuntu 20.04，Chrome版测试于Arch，目前没有增加对Windows或MacOS支持的计划
 
 ## 特别鸣谢
 本程序由Nagato 与 Sida共同完成,特别感谢Sida在解决Fetch与chrome的支持（在Chrome版本的上有远超Gecko版的体验与中文支持）
