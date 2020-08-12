@@ -102,6 +102,7 @@ def main():
         driver = context.user_data["driver"]
         driver.close() 
         print("Service stop")
+        context.user_data["loggedin"]=False
         context.bot.send_message(chat_id=update.effective_chat.id, text="You have logged out")
 
     dispatcher.add_handler(CommandHandler("login", 
